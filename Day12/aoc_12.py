@@ -14,17 +14,20 @@ class Variant:
         self.max_idx = max_idx
 
     def new_zero(self):
+        if len(self.series) == 0:
+            return Variant([0], self.first_on, self.last_on, self.index + 1, self.max_idx)
         if self.series[-1] == 0:
             return Variant(deepcopy(self.series), self.first_on, self.last_on, self.index + 1, self.max_idx)
         else:
             return Variant(self.series + [0], self.first_on, self.last_on, self.index + 1, self.max_idx)
 
     def new_one(self):
-        first_on = True if index == 0 else self.first_on
-        last_on = True if index == max_idx else self.last_on
+        if len(self.series) == 0:
+            return Variant([1], True, self.last_on, self.index + 1, self.max_idx)
+        last_on = True if self.index == self.max_idx else self.last_on
         new_series = deepcopy(self.series)
         new_series[-1] += 1
-        return Variant(new_series, first_on, last_on, self.index + 1, self.max_idx)
+        return Variant(new_series, self.first_on, last_on, self.index + 1, self.max_idx)
 
 def run_script(filepath: str) -> Union[int, str, float, bool]:
     with open(filepath, "r") as f:
@@ -52,44 +55,23 @@ def part_1(lines: list):
     print(f"Part 1: {total}")
 
 def count_valid_variants(values: str, targets: list) -> int:
-    variants = [([], 0)]
+    max_idx = len(values) - 1
+    variants = [Variant([], False, False, 0, max_idx)]
     valid = []
     while variants:
-        (series, index) = variants.pop(0)
-        if not valid_series(series, values, index, targets):
+        variant = variants.pop(0)
+        if not valid_series(variant.series, values, variant.index, targets):
             continue
-        if index == len(values):
-            valid.append(series)
+        if variant.index == len(values):
+            valid.append(variant)
             continue
-        if len(series) == 0:
-            if values[index] == ".":
-                variants.append(([0], index + 1))
-            elif values[index] == "#":
-                variants.append(([1], index + 1))
-            else:
-                variants.append(([0], index + 1))
-                variants.append(([1], index + 1))
-            continue
-        if values[index] == ".":
-            if series[-1] == 0:
-                variants.append((deepcopy(series), index + 1))
-            else:
-                variants.append((series + [0], index + 1))
-        elif values[index] == "#":
-            new_series = deepcopy(series)
-            new_series[-1] += 1
-            variants.append((new_series, index + 1))
+        if values[variant.index] == ".":
+            variants.append(variant.new_zero())
+        elif values[variant.index] == "#":
+            variants.append(variant.new_one())
         else:
-            if series[-1] == 0:
-                variants.append((deepcopy(series), index + 1))
-                new_series = deepcopy(series)
-                new_series[-1] += 1
-                variants.append((new_series, index + 1))
-            else:
-                variants.append((series + [0], index + 1))
-                new_series = deepcopy(series)
-                new_series[-1] += 1
-                variants.append((new_series, index + 1))
+            variants.append(variant.new_zero())
+            variants.append(variant.new_one())
     return valid
 
 def valid_series(series: list, values: str, index: int, targets: list):
