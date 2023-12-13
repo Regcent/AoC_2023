@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from copy import deepcopy
 import math
 
+### TODO : PRoblem with valid INCOMPLETE variants (e.g finishing with 0 and using the new ONE)
+
 class Variant:
 
     def __init__(self, series: list, first_on: bool, last_on: bool, index: int, max_idx: int):
@@ -43,16 +45,72 @@ def main_function(raw_data: str) -> Union[int, str, float, bool]:
 
 def your_script(raw_data: str) -> Union[int, str, float, bool]:
     lines = raw_data.split("\n")
-    part_1(lines)
+    variants = part_1(lines)
+    part_2(lines, variants)
 
 def part_1(lines: list):
     total = 0
+    variants = list()
     for line in lines:
         values, targets = line.split()
         targets = [int(i) for i in targets.split(",")]
         valid = count_valid_variants(values, targets)
+        variants.append({"first_on": 0, "last_on": 0, "both": 0, "none": 0})
+        for variant in valid:
+            if variant.first_on and variant.last_on:
+                variants[-1]["both"] += 1
+            elif variant.first_on:
+                variants[-1]["first_on"] += 1
+            elif variant.last_on:
+                variants[-1]["last_on"] += 1
+            else:
+                variants[-1]["none"] += 1
         total += len(valid)
     print(f"Part 1: {total}")
+    return variants
+
+def part_2(lines: list, variants: list):
+    total = 0
+    long_variants = list()
+    for i in range(len(lines)):
+        values, targets = lines[i].split()
+        targets = [int(i) for i in targets.split(",")]
+        valid = count_valid_variants("?" + values, targets)
+        long_variants.append({"first_on": 0, "last_on": 0, "both": 0, "none": 0})
+        for variant in valid:
+            if variant.first_on and variant.last_on:
+                long_variants[-1]["both"] += 1
+            elif variant.first_on:
+                long_variants[-1]["first_on"] += 1
+            elif variant.last_on:
+                long_variants[-1]["last_on"] += 1
+            else:
+                long_variants[-1]["none"] += 1
+        print(variants, long_variants)
+        associations = count_associations(variants, long_variants, i)
+        print(associations)
+        total += associations
+    print(f"Part 2: {total}")
+
+def count_associations(variants: list, long_variants: list, idx: int):
+    associations = [([key], variants[idx][key]) for key in variants[idx]]
+    total = 0
+    while associations:
+        (series, amount) = associations.pop(0)
+        print(series, amount)
+        if len(series) == 5:
+            total += amount
+            continue
+        if amount == 0:
+            continue
+        valid = []
+        if series[-1] == "both" or series[-1] == "last_on":
+            valid = ["last_on", "none"]
+        else:
+            valid = ["first_on", "last_on", "both", "none"]
+        for key in valid:
+            associations.append((series + [key], amount * long_variants[idx][key]))
+    return total
 
 def count_valid_variants(values: str, targets: list) -> int:
     max_idx = len(values) - 1
@@ -96,4 +154,4 @@ def valid_series(series: list, values: str, index: int, targets: list):
     return left_overs <= len(values) - index
 
 if __name__ == "__main__":
-    print(run_script("input.txt"))
+    print(run_script("iso_example.txt"))
